@@ -20,6 +20,11 @@ class SearchNode(Tile):
         self.parent = parent
         self.swap = swap
 
+        self._word = None
+        self._score = None
+        self._gem_count = None
+        self._swap_count = None
+
 
     def to_string(self, context = None):
         swap_strings = []
@@ -71,36 +76,38 @@ class SearchNode(Tile):
     
 
     def word(self):
-        return "".join([
-            chain_node.letter
-            for chain_node in self.chain()
-        ])
+        if self._word is None:
+            self._word = "".join([chain_node.letter for chain_node in self.chain()])
+        return self._word
     
 
     def score(self, context = None):
-        score = 0
-        double_word_score = False
+        if self._score is None:
+            score = 0
+            double_word_score = False
 
-        gem_count = 0
-        for chain_node in self.chain():
-            score += chain_node.value()
+            gem_count = 0
+            for chain_node in self.chain():
+                score += chain_node.value()
 
-            if TileModifier.DOUBLE_WORD in chain_node.modifiers:
-                double_word_score = True
+                if TileModifier.DOUBLE_WORD in chain_node.modifiers:
+                    double_word_score = True
 
-            if TileModifier.GEM in chain_node.modifiers:
-                gem_count += 1
+                if TileModifier.GEM in chain_node.modifiers:
+                    gem_count += 1
 
-        if double_word_score:
-            score *= 2
+            if double_word_score:
+                score *= 2
 
-        if len(self.word()) >= 6:
-            score += 10
+            if len(self.word()) >= 6:
+                score += 10
 
-        if context is not None and context.match_round == 5:
-            score += gem_count
+            if context is not None and context.match_round == 5:
+                score += gem_count
 
-        return score
+            self._score = score
+
+        return self._score
 
 
     def estimated_long_term_score(self, context):
@@ -122,14 +129,12 @@ class SearchNode(Tile):
 
 
     def gem_count(self):
-        return [
-            TileModifier.GEM in chain_node.modifiers
-            for chain_node in self.chain()
-        ].count(True)
+        if self._gem_count is None:
+            self._gem_count = sum(TileModifier.GEM in chain_node.modifiers for chain_node in self.chain())
+        return self._gem_count
 
 
     def swap_count(self):
-        return [
-            chain_node.swap
-            for chain_node in self.chain()
-        ].count(True)
+        if self._swap_count is None:
+            self._swap_count = sum(chain_node.swap for chain_node in self.chain())
+        return self._swap_count
