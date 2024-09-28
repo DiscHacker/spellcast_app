@@ -70,6 +70,7 @@ class Spellcast(Board):
     
 
     def legal_moves(self, sort_key = None, sort_reverse: bool = True):
+        all_moves = []
         with ProcessPoolExecutor() as executor:
             futures = []
             for y in range(len(self.tiles)):
@@ -77,25 +78,26 @@ class Spellcast(Board):
                     if TileModifier.FROZEN not in self.tile_at(x, y).modifiers:
                         futures.append(executor.submit(self.legal_moves_from, x, y))
 
-            all_moves = []
             for future in as_completed(futures):
                 all_moves.extend(future.result())
 
-        unique_move_map = {}
-        for move in all_moves:
-            word = move.word()
-            existing_move = unique_move_map.get(word)
-            if existing_move is None or move.score() > existing_move.score() or \
-            (move.score() == existing_move.score() and move.swap_count() < existing_move.swap_count()) or \
-            (move.score() == existing_move.score() and move.swap_count() == existing_move.swap_count() and move.gem_count() > existing_move.gem_count()):
-                unique_move_map[word] = move
-
-        legal_move_nodes = list(unique_move_map.values())
+        # Prune moves
+        pruned_moves = self.prune_moves(all_moves)
 
         if sort_key is not None:
-            legal_move_nodes.sort(key=sort_key, reverse=sort_reverse)
+            pruned_moves.sort(key=sort_key, reverse=sort_reverse)
 
-        return legal_move_nodes
+        return pruned_moves
+
+    def prune_moves(self, moves):
+        word_score_map = {}
+        for move in moves:
+            word = move.word()
+            score = move.score(self)
+            if word not in word_score_map or score > word_score_map[word][0]:
+                word_score_map[word] = (score, move)
+
+        return [move for _, move in word_score_map.values()]
     
 
     def evaluate_shuffle(self, top_move: SearchNode) -> tuple[int, bool]:
