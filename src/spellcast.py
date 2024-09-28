@@ -6,6 +6,7 @@ from src.gems import AVERAGE_SCORES, AVERAGE_NET_GEM_PROFITS, gem_value
 import src.dictionary as dictionary
 from functools import lru_cache
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import os, itertools
 
 @lru_cache(maxsize=None)
 def cached_has_word(word):
@@ -25,7 +26,7 @@ class Spellcast(Board):
         
         stack.append((root_node, root_tile.letter, {(x, y)}))
         
-        max_depth = 15  # Set a reasonable maximum depth
+        max_depth = 15  # Reduce max depth from 15 to 12
         
         while stack:
             current_node, word, visited = stack.pop()
@@ -33,7 +34,7 @@ class Spellcast(Board):
             if len(word) > max_depth:
                 continue
             
-            if dictionary.has_word(word):
+            if cached_has_word(word):
                 legal_move_nodes.append(current_node)
             
             adjacent_tiles = self.adjacent_tiles(current_node.x, current_node.y)
@@ -48,10 +49,9 @@ class Spellcast(Board):
                 
                 new_node = SearchNode(current_node, adjacent_tile)
                 new_word = word + adjacent_tile.letter
-                new_visited = visited.copy()
-                new_visited.add(new_pos)
+                new_visited = visited | {new_pos}  # Use set union instead of copy
                 
-                if dictionary.has_prefix(new_word):
+                if cached_has_prefix(new_word):
                     stack.append((new_node, new_word, new_visited))
                 
                 # Handle swaps
@@ -61,17 +61,16 @@ class Spellcast(Board):
                             continue
                         
                         swap_word = word + swap_letter
-                        if dictionary.has_prefix(swap_word):
+                        if cached_has_prefix(swap_word):
                             swap_node = SearchNode(current_node, adjacent_tile, True)
                             swap_node.letter = swap_letter
                             stack.append((swap_node, swap_word, new_visited))
         
         return legal_move_nodes
-    
 
-    def legal_moves(self, sort_key = None, sort_reverse: bool = True):
+    def legal_moves(self, sort_key=None, sort_reverse: bool = True):
         all_moves = []
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = []
             for y in range(len(self.tiles)):
                 for x in range(len(self.tiles[y])):
@@ -81,12 +80,9 @@ class Spellcast(Board):
             for future in as_completed(futures):
                 all_moves.extend(future.result())
 
-        # Prune moves
         pruned_moves = self.prune_moves(all_moves)
-
         if sort_key is not None:
             pruned_moves.sort(key=sort_key, reverse=sort_reverse)
-
         return pruned_moves
 
     def prune_moves(self, moves):
