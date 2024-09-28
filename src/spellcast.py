@@ -5,7 +5,7 @@ from src.searchnode import SearchNode
 from src.gems import AVERAGE_SCORES, AVERAGE_NET_GEM_PROFITS, gem_value
 import src.dictionary as dictionary
 from functools import lru_cache
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import Pool
 import os, itertools
 
 @lru_cache(maxsize=None)
@@ -67,24 +67,26 @@ class Spellcast(Board):
                             stack.append((swap_node, swap_word, new_visited))
         
         return legal_move_nodes
+    
+    def legal_moves_from_parallel(self, start_positions):
+        with Pool(processes=os.cpu_count()) as pool:
+            results = pool.starmap(self.legal_moves_from, start_positions)
+        return [move for sublist in results for move in sublist]
 
     def legal_moves(self, sort_key=None, sort_reverse: bool = True):
-        all_moves = []
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            futures = []
-            for y in range(len(self.tiles)):
-                for x in range(len(self.tiles[y])):
-                    if TileModifier.FROZEN not in self.tile_at(x, y).modifiers:
-                        futures.append(executor.submit(self.legal_moves_from, x, y))
-
-            for future in as_completed(futures):
-                all_moves.extend(future.result())
+        start_positions = [
+            (x, y) for y in range(len(self.tiles))
+            for x in range(len(self.tiles[y]))
+            if TileModifier.FROZEN not in self.tile_at(x, y).modifiers
+        ]
+        all_moves = self.legal_moves_from_parallel(start_positions)
 
         pruned_moves = self.prune_moves(all_moves)
         if sort_key is not None:
             pruned_moves.sort(key=sort_key, reverse=sort_reverse)
         return pruned_moves
-
+    
+    
     def prune_moves(self, moves):
         word_score_map = {}
         for move in moves:
