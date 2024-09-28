@@ -14,7 +14,6 @@ cut_dictionaries = [
 def has_word(word: str):
     return word in dictionary
 
-
 def has_prefix(prefix: str):
     prefix_length = len(prefix)
 
