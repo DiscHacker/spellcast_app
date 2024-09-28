@@ -23,7 +23,7 @@ class Board:
     def __init__(self, tiles: BoardTiles = [], gems: int = 0):
         self.tiles = tiles
         self.gems = gems
-
+        self.bitboard = 0
 
     def __str__(self):
         board_lines = []
@@ -172,3 +172,15 @@ class Board:
                 adjacent_tile = self.tile_at(adjacent_x, adjacent_y)
                 if adjacent_tile is not None:
                     yield adjacent_tile
+
+    def set_visited(self, x, y):
+        if 0 <= y < len(self.tiles) and 0 <= x < len(self.tiles[y]):
+            self.bitboard |= 1 << (y * len(self.tiles[0]) + x)
+
+    def is_visited(self, x, y):
+        if 0 <= y < len(self.tiles) and 0 <= x < len(self.tiles[y]):
+            return bool(self.bitboard & (1 << (y * len(self.tiles[0]) + x)))
+        return False
+
+    def clear_visited(self):
+        self.bitboard = 0
