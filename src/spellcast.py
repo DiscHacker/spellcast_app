@@ -1,12 +1,11 @@
-from collections import deque
 from src.board import Board
-from src.tile import TileModifier
+from src.tile import TileModifier, Tile
 from src.searchnode import SearchNode
 from src.gems import AVERAGE_SCORES, AVERAGE_NET_GEM_PROFITS, gem_value
 import src.dictionary as dictionary
 from functools import lru_cache
 from multiprocessing import Pool
-import os, itertools
+import os
 
 @lru_cache(maxsize=None)
 def cached_has_word(word):
@@ -21,7 +20,9 @@ class Spellcast(Board):
         legal_move_nodes = []
         stack = [(SearchNode(None, self.tile_at(x, y)), self.tile_at(x, y).letter, {(x, y)})]
         
-        max_depth = 15  # Reduced from 15 to 12
+        max_depth = 15
+        min_word_length = 4 
+        min_score_threshold = 12
         
         while stack:
             current_node, word, visited = stack.pop()
@@ -29,8 +30,12 @@ class Spellcast(Board):
             if len(word) > max_depth:
                 continue
             
-            if cached_has_word(word):
-                legal_move_nodes.append(current_node)
+            # Early pruning based on word length and score
+            if len(word) >= min_word_length:
+                if cached_has_word(word):
+                    score = self.quick_score_estimate(current_node)
+                    if score >= min_score_threshold:
+                        legal_move_nodes.append(current_node)
             
             for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
                 new_x, new_y = current_node.x + dx, current_node.y + dy
@@ -63,6 +68,15 @@ class Spellcast(Board):
                                 stack.append((swap_node, swap_word, new_visited))
         
         return legal_move_nodes
+    
+    def quick_score_estimate(self, node):
+        score = 0
+        word = node.word()
+        for letter in word:
+            score += Tile(letter, 0, 0).value()
+        if len(word) >= 6:
+            score += 10
+        return score
     
     def legal_moves_from_parallel(self, start_positions):
         with Pool(processes=os.cpu_count()) as pool:
