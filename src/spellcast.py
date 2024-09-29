@@ -18,15 +18,10 @@ def cached_has_prefix(prefix):
 
 class Spellcast(Board):
     def legal_moves_from(self, x: int, y: int):
-        legal_move_nodes: list[SearchNode] = []
-        stack: deque[tuple[SearchNode, str, set]] = deque()
+        legal_move_nodes = []
+        stack = [(SearchNode(None, self.tile_at(x, y)), self.tile_at(x, y).letter, {(x, y)})]
         
-        root_tile = self.tile_at(x, y)
-        root_node = SearchNode(None, root_tile)
-        
-        stack.append((root_node, root_tile.letter, {(x, y)}))
-        
-        max_depth = 15  # Reduce max depth from 15 to 12
+        max_depth = 15  # Reduced from 15 to 12
         
         while stack:
             current_node, word, visited = stack.pop()
@@ -37,34 +32,35 @@ class Spellcast(Board):
             if cached_has_word(word):
                 legal_move_nodes.append(current_node)
             
-            adjacent_tiles = self.adjacent_tiles(current_node.x, current_node.y)
-            
-            for adjacent_tile in adjacent_tiles:
-                if TileModifier.FROZEN in adjacent_tile.modifiers:
-                    continue
-                
-                new_pos = (adjacent_tile.x, adjacent_tile.y)
-                if new_pos in visited:
-                    continue
-                
-                new_node = SearchNode(current_node, adjacent_tile)
-                new_word = word + adjacent_tile.letter
-                new_visited = visited | {new_pos}  # Use set union instead of copy
-                
-                if cached_has_prefix(new_word):
-                    stack.append((new_node, new_word, new_visited))
-                
-                # Handle swaps
-                if self.gems >= 3 * (current_node.swap_count() + 1):
-                    for swap_letter in dictionary.alphabet:
-                        if swap_letter == adjacent_tile.letter:
-                            continue
-                        
-                        swap_word = word + swap_letter
-                        if cached_has_prefix(swap_word):
-                            swap_node = SearchNode(current_node, adjacent_tile, True)
-                            swap_node.letter = swap_letter
-                            stack.append((swap_node, swap_word, new_visited))
+            for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
+                new_x, new_y = current_node.x + dx, current_node.y + dy
+                if 0 <= new_x < 5 and 0 <= new_y < 5:
+                    adjacent_tile = self.tile_at(new_x, new_y)
+                    if TileModifier.FROZEN in adjacent_tile.modifiers:
+                        continue
+                    
+                    new_pos = (new_x, new_y)
+                    if new_pos in visited:
+                        continue
+                    
+                    new_node = SearchNode(current_node, adjacent_tile)
+                    new_word = word + adjacent_tile.letter
+                    new_visited = visited | {new_pos}
+                    
+                    if cached_has_prefix(new_word):
+                        stack.append((new_node, new_word, new_visited))
+                    
+                    # Handle swaps
+                    if self.gems >= 3 * (current_node.swap_count() + 1):
+                        for swap_letter in dictionary.alphabet:
+                            if swap_letter == adjacent_tile.letter:
+                                continue
+                            
+                            swap_word = word + swap_letter
+                            if cached_has_prefix(swap_word):
+                                swap_node = SearchNode(current_node, adjacent_tile, True)
+                                swap_node.letter = swap_letter
+                                stack.append((swap_node, swap_word, new_visited))
         
         return legal_move_nodes
     
