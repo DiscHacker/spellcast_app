@@ -27,35 +27,15 @@ class SearchNode(Tile):
 
 
     def to_string(self, context = None):
-        swap_strings = []
+        swap_strings = {}
         for chain_node in self.chain():
             if not chain_node.swap:
                 continue
+            swap_strings[(chain_node.x + 1, chain_node.y + 1)] = chain_node.letter.upper()
 
-            swap_strings.append(
-                f"swap to {chain_node.letter} at (x: {chain_node.x + 1}, y: {chain_node.y + 1})"
-            )
+        coordinates = [(chain_node.x + 1, chain_node.y + 1) for chain_node in self.chain()]
 
-        swap_details = ", ".join(swap_strings)
-
-        return (
-            f"{self.word()} - {self.score(context)} points, "
-            + f"{self.gem_count()} gems"
-            + (" - " if len(swap_strings) > 0 else "")
-            + swap_details
-            + (
-                (
-                    "\nestimated long term value: "
-                    + str(self.estimated_long_term_score(context))
-                )
-                if (
-                    config["gemManagement"]
-                    and context is not None
-                    and context.match_round < 5
-                )
-                else ""
-            )
-        )
+        return self.word(), self.score(context), self.gem_count(), coordinates, swap_strings
 
 
     def chain(self):
@@ -81,14 +61,17 @@ class SearchNode(Tile):
         return self._word
     
 
-    def score(self, context = None):
+    def score(self, context=None):
         if self._score is None:
             score = 0
             double_word_score = False
-
             gem_count = 0
-            for chain_node in self.chain():
+            word_length = 0
+
+            chain = self.chain()
+            for chain_node in chain:
                 score += chain_node.value()
+                word_length += 1
 
                 if TileModifier.DOUBLE_WORD in chain_node.modifiers:
                     double_word_score = True
@@ -99,13 +82,14 @@ class SearchNode(Tile):
             if double_word_score:
                 score *= 2
 
-            if len(self.word()) >= 6:
+            if word_length >= 6:
                 score += 10
 
             if context is not None and context.match_round == 5:
                 score += gem_count
 
             self._score = score
+            self._gem_count = gem_count  # Cache gem_count for future use
 
         return self._score
 

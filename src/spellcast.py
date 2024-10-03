@@ -21,8 +21,8 @@ class Spellcast(Board):
         stack = [(SearchNode(None, self.tile_at(x, y)), self.tile_at(x, y).letter, {(x, y)})]
         
         max_depth = 15
-        min_word_length = 4 
-        min_score_threshold = 12
+        min_word_length = 5
+        min_score_threshold = 15
         
         while stack:
             current_node, word, visited = stack.pop()

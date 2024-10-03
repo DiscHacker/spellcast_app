@@ -13,7 +13,8 @@ def get_gem_value(gem_count: int):
 
 GEM_VALUE_LOOKUP = [get_gem_value(i) for i in range(11)]
 
-def gem_value(gem_count: int):
+def gem_value(gem_count: float):
+    gem_count = int(gem_count)  # Convert to integer
     if gem_count >= len(GEM_VALUE_LOOKUP):
         return GEM_VALUE_LOOKUP[-1]
     return GEM_VALUE_LOOKUP[gem_count]
