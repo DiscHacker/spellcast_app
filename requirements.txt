@@ -1,2 +1,5 @@
 typing_extensions
 matplotlib
+pyqt5
+paddlepaddle
+pywin32
