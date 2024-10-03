@@ -1,5 +1,5 @@
 ## A forked version of [WintrCat's spellcastsolver](https://github.com/wintrcat/spellcastsolver) with the following improvement
-- Improved solving speed, by using multiprocessing and optimized alogorithm, overall time taken reduced by about 7 times with 2 swaps
+- Improved solving speed, by using multiprocessing and optimized alogorithm, overall time taken reduced by about 7 times with 2 swaps without using pypy
 - Automatic game board capturing, with nearly 100% accuracy using paddle ocr and some preprocessing
 - Implemented into app with simple GUI, guiding arrows, automatic window tracking by title
 
