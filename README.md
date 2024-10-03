@@ -8,4 +8,4 @@
 - Oh, and don't forget to make the game window as big as possible, like if you're in voice chat, hide voice users, if you're in DM voice calling, hide chat.
 
 ## Preview
-<img src="resources/preview/app_preview.png" alt="Preview Image" width="300">
+<img src="resources/preview/app_preview.png" alt="Preview Image" width="700">
